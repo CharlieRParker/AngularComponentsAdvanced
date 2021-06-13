@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, QueryList, OnInit, OnDestroy, AfterContentInit, ContentChildren } from '@angular/core';
 import { TabComponent } from "app/tab/tab.component";
+import { Subscription } from 'rxjs';
 import { Tab } from "../tab/tab.interface";
 
 
@@ -8,32 +9,40 @@ import { Tab } from "../tab/tab.interface";
   templateUrl: './tabs.component.html',
   styleUrls: ['./tabs.component.scss']
 })
-export class TabsComponent implements OnInit {
+export class TabsComponent implements OnInit, OnDestroy, AfterContentInit {
 
-  public tabs:Tab[] = [];
+  @ContentChildren(TabComponent) public tabs: QueryList<TabComponent>;
+  private tabClickSubscriptions: Subscription[] = [];
+
 
   constructor() { }
-
   ngOnInit() {
-    this.addTab({isActive:false, title:"tab 1"});
-    this.addTab({isActive:false, title:"tab 2"});
-    this.addTab({isActive:false, title:"tab 3"});
-    this.addTab({isActive:false, title:"tab 4"});
+
   }
 
-  addTab(tab:Tab){
-    if (this.tabs.length === 0) {
-      tab.isActive = true;
-    }
-    this.tabs.push(tab);
+  ngAfterContentInit(): void {
+    console.log(this.tabs);
+    this.tabs.forEach(tab => {
+      let subscription = tab.onClick.subscribe(() => {
+        console.log(`tab ${tab.title} content clicked`);
+      });
+      this.tabClickSubscriptions.push(subscription);
+    });
+    this.selectTab(this.tabs.first);
   }
 
-  selectTab(tab:Tab) {
-    for (let tab of this.tabs){
+  selectTab(tab: Tab) {
+    this.tabs.forEach(tab => {
       tab.isActive = false;
-    }
+    })
     tab.isActive = true;
   }
-  
+
+  ngOnDestroy(): void {
+    if (this.tabClickSubscriptions)
+      this.tabClickSubscriptions.forEach(item => {
+        item.unsubscribe()
+      });
+  }
 
 }
